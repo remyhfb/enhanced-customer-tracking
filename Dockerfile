@@ -49,6 +49,6 @@ EXPOSE 5000
 ENV FLASK_APP=src/main.py
 ENV FLASK_ENV=production
 
-# Run the application
-CMD ["python", "src/main.py"]
+# Run the application with Gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "120", "src.main:app"]
 
