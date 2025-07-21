@@ -3,7 +3,7 @@ from flask_cors import cross_origin
 import requests
 import logging
 import json
-# from src.enhanced_stealth_scraper import get_enhanced_stealth_tracking
+from src.enhanced_stealth_scraper import get_enhanced_stealth_tracking
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ WOOCOMMERCE_URL = "https://shop.humanfoodbar.com"
 WOOCOMMERCE_CONSUMER_KEY = "ck_e796b39727d0a0717194131cc4218eeea6dd43cd"
 WOOCOMMERCE_CONSUMER_SECRET = "cs_f7aa55b988e4cc3fefe3c86da06bf45d9fd36574"
 
-@tracking_bp.route('/track-order', methods=['POST'])
+@tracking_bp.route('/api/track-order', methods=['POST'])
 @cross_origin()
 def track_order():
     """
@@ -85,10 +85,27 @@ def track_order():
             'carrier': tracking_provider.upper() if tracking_provider else None
         }
         
-        # If we have a tracking number, show basic tracking info
+        # If we have a tracking number, try enhanced tracking
         if tracking_number:
-            response_data['message'] = f"Order {order_status.lower()}: Tracking number {tracking_number}"
-            response_data['tracking_url'] = get_tracking_url(tracking_number, tracking_provider)
+            try:
+                logger.info(f"Attempting enhanced tracking for {tracking_number}")
+                enhanced_tracking = get_enhanced_stealth_tracking(tracking_number)
+                
+                if enhanced_tracking and enhanced_tracking.get('status') and enhanced_tracking.get('status') != 'Check tracking link for current status':
+                    response_data['enhanced_tracking'] = enhanced_tracking
+                    response_data['delivery_status'] = enhanced_tracking.get('status')
+                    response_data['message'] = f"Order {order_status.lower()}: {enhanced_tracking.get('status')}"
+                    response_data['tracking_url'] = enhanced_tracking.get('tracking_url') or get_tracking_url(tracking_number, tracking_provider)
+                    logger.info(f"Enhanced tracking successful: {enhanced_tracking.get('status')}")
+                else:
+                    response_data['message'] = f"Order {order_status.lower()}: Tracking number {tracking_number}"
+                    response_data['tracking_url'] = get_tracking_url(tracking_number, tracking_provider)
+                    logger.info("Enhanced tracking returned generic status, using basic tracking")
+                    
+            except Exception as e:
+                logger.error(f"Enhanced tracking failed: {e}")
+                response_data['message'] = f"Order {order_status.lower()}: Tracking number {tracking_number}"
+                response_data['tracking_url'] = get_tracking_url(tracking_number, tracking_provider)
         else:
             response_data['message'] = f"Order {order_status.lower()}: No tracking information available"
         

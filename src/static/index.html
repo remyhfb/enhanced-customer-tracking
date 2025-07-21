@@ -286,9 +286,13 @@
                 }
             }
             
-            // Tracking Link
-            if (data.tracking_number && data.enhanced_tracking && data.enhanced_tracking.tracking_url) {
-                html += `<a href="${data.enhanced_tracking.tracking_url}" target="_blank" class="tracking-link">View Details →</a>`;
+            // Tracking Link - Show for any tracking number
+            if (data.tracking_number && data.tracking_url) {
+                html += `<a href="${data.tracking_url}" target="_blank" class="tracking-link">View Tracking Details →</a>`;
+            } else if (data.tracking_number) {
+                // Fallback tracking link if no URL provided
+                const fallbackUrl = `https://www.google.com/search?q=track+${data.tracking_number}`;
+                html += `<a href="${fallbackUrl}" target="_blank" class="tracking-link">Search Tracking →</a>`;
             }
             
             // Message
