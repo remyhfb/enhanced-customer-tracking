@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Tracking</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.2s ease;
+            background-color: #fff;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #666;
+        }
+        
+        .track-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: #666;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        .track-btn:hover {
+            background-color: #555;
+        }
+        
+        .track-btn:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #e1e8ed;
+            background-color: #f8f9fa;
+        }
+        
+        .result h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .status-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .status-value {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        
+        .delivery-status {
+            color: #27ae60;
+            font-weight: 700;
+        }
+        
+        .tracking-link {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 8px 16px;
+            background-color: #666;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+        }
+        
+        .tracking-link:hover {
+            background-color: #555;
+        }
+        
+        .error {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fee;
+            border: 1px solid #fcc;
+            border-radius: 6px;
+            color: #c33;
+            font-size: 14px;
+        }
+        
+        .message {
+            margin-top: 15px;
+            padding: 12px;
+            background-color: #f0f8ff;
+            border: 1px solid #d1ecf1;
+            border-radius: 6px;
+            color: #0c5460;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+                box-shadow: none;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Order Tracking</h1>
+        
+        <form id="trackingForm">
+            <div class="form-group">
+                <label for="orderNumber">Order Number</label>
+                <input type="text" id="orderNumber" placeholder="Enter order number" required>
+            </div>
+            
+            <button type="submit" class="track-btn" id="trackBtn">Track Order</button>
+        </form>
+        
+        <div id="result" style="display: none;"></div>
+        <div id="error" style="display: none;"></div>
+    </div>
+
+    <script>
+        document.getElementById('trackingForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const orderNumber = document.getElementById('orderNumber').value.trim();
+            const trackBtn = document.getElementById('trackBtn');
+            const resultDiv = document.getElementById('result');
+            const errorDiv = document.getElementById('error');
+            
+            if (!orderNumber) {
+                showError('Please enter an order number');
+                return;
+            }
+            
+            // Reset displays
+            resultDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+            
+            // Update button state
+            trackBtn.disabled = true;
+            trackBtn.textContent = '~ Tracking...';
+            
+            try {
+                const response = await fetch('/api/track-order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ order_number: orderNumber })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult(data);
+                } else {
+                    showError(data.error || 'Unable to track order');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Unable to retrieve tracking information. Please try again later.');
+            } finally {
+                trackBtn.disabled = false;
+                trackBtn.textContent = 'Track Order';
+            }
+        });
+        
+        function showResult(data) {
+            const resultDiv = document.getElementById('result');
+            
+            let html = '<h3>Order Information</h3>';
+            
+            // Order Status
+            html += `<div class="status-row">
+                <span class="status-label">Status:</span>
+                <span class="status-value">${data.order_status}</span>
+            </div>`;
+            
+            // Order Date
+            if (data.order_date) {
+                const date = new Date(data.order_date).toLocaleDateString();
+                html += `<div class="status-row">
+                    <span class="status-label">Date:</span>
+                    <span class="status-value">${date}</span>
+                </div>`;
+            }
+            
+            // Carrier
+            if (data.carrier) {
+                html += `<div class="status-row">
+                    <span class="status-label">Carrier:</span>
+                    <span class="status-value">${data.carrier}</span>
+                </div>`;
+            }
+            
+            // Enhanced Delivery Status
+            if (data.enhanced_tracking && data.delivery_status) {
+                html += `<div class="status-row">
+                    <span class="status-label">Delivery:</span>
+                    <span class="status-value delivery-status">${data.delivery_status}</span>
+                </div>`;
+                
+                // Additional enhanced tracking details
+                if (data.enhanced_tracking.current_location) {
+                    html += `<div class="status-row">
+                        <span class="status-label">Location:</span>
+                        <span class="status-value">${data.enhanced_tracking.current_location}</span>
+                    </div>`;
+                }
+                
+                if (data.enhanced_tracking.estimated_delivery) {
+                    html += `<div class="status-row">
+                        <span class="status-label">Est. Delivery:</span>
+                        <span class="status-value">${data.enhanced_tracking.estimated_delivery}</span>
+                    </div>`;
+                }
+            }
+            
+            // Tracking Link
+            if (data.tracking_number && data.enhanced_tracking && data.enhanced_tracking.tracking_url) {
+                html += `<a href="${data.enhanced_tracking.tracking_url}" target="_blank" class="tracking-link">View Details →</a>`;
+            }
+            
+            // Message
+            if (data.message) {
+                html += `<div class="message">${data.message}</div>`;
+            }
+            
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.innerHTML = `<div class="error">${message}</div>`;
+            errorDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
+
