@@ -18,14 +18,16 @@ RUN pip install --no-cache-dir --no-deps -r requirements.txt \
 COPY src/ ./src/
 
 # Expose port
-EXPOSE 5000
+EXPOSE 8080
 
-# Set environment variables for minimal memory usage
+# Set environment variables
 ENV FLASK_APP=src/main.py
 ENV FLASK_ENV=production
+ENV PORT=8080
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Run with minimal Gunicorn configuration for 600MB limit
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--threads", "1", "--timeout", "60", "--max-requests", "50", "--preload", "--worker-class", "sync", "src.main:app"]
+# Run with Gunicorn configuration matching working app
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--timeout", "60", "--max-requests", "50", "src.main:app"]
 
